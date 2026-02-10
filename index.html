@@ -2,208 +2,253 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>FNAF: Beginning of Hell</title>
+    <title>FNAF: Beginning of Hell - Remastered</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <style>
-        :root { --fnaf-red: #8b0000; }
-        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Courier New', Courier, monospace; color: white; user-select: none; }
+        :root { --danger: #ff0000; --ui-gold: #ffd700; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; user-select: none; }
         
-        /* UI */
-        #game-hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
-        #stats { position: fixed; top: 20px; left: 20px; font-size: 1.2rem; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        #btns { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; }
-        .game-btn { background: #111; color: white; border: 2px solid #444; padding: 15px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        /* --- TELA INICIAL --- */
+        #main-menu {
+            position: fixed; inset: 0; z-index: 500;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 1.5s ease;
+        }
+        #title-box { text-align: center; animation: titleFloat 4s infinite ease-in-out; }
+        h1 { font-size: 4rem; color: var(--danger); text-shadow: 0 0 20px rgba(255,0,0,0.5); margin: 0; letter-spacing: 10px; }
+        .subtitle { font-size: 1rem; color: #555; letter-spacing: 5px; margin-bottom: 50px; }
+        .btn-container { display: flex; flex-direction: column; gap: 15px; }
+        .menu-btn {
+            background: transparent; border: 1px solid #333; color: #aaa;
+            padding: 15px 50px; font-size: 1.2rem; cursor: pointer;
+            transition: 0.4s; position: relative; overflow: hidden;
+        }
+        .menu-btn:hover { border-color: var(--danger); color: white; box-shadow: 0 0 15px rgba(255,0,0,0.3); }
 
-        /* CÂMERAS */
-        #cam-map { position: fixed; bottom: 100px; right: 20px; display: none; flex-direction: column; gap: 5px; pointer-events: auto; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #ff0000; }
-        .cam-btn { background: #222; color: white; border: 1px solid #666; padding: 8px; font-size: 12px; cursor: pointer; text-align: left; }
-        .cam-btn:hover { background: #444; border-color: #fff; }
-
-        /* INTERROGAÇÃO */
-        #dialog-panel { position: fixed; bottom: 120px; left: 20px; background: rgba(0,0,0,0.9); border: 2px solid red; padding: 15px; display: none; flex-direction: column; gap: 10px; z-index: 20; width: 250px; pointer-events: auto; }
-        .dialog-btn { background: #111; color: #ccc; border: 1px solid #444; padding: 8px; cursor: pointer; }
+        /* --- INTERFACE DO JOGO --- */
+        #game-ui { display: none; position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+        #top-info { position: fixed; top: 20px; left: 20px; font-weight: bold; }
+        #power-box { color: #0f0; font-size: 1.5rem; text-shadow: 0 0 5px #0f0; }
         
-        /* EFEITOS */
-        #static-fx { position: fixed; inset: 0; background: url('https://media.giphy.com/media/oEI9uWUqnW3Fe/giphy.gif'); opacity: 0.07; pointer-events: none; z-index: 5; display: none; }
-        #cam-info { position: fixed; top: 20px; right: 20px; font-size: 1.5rem; color: red; display: none; font-weight: bold; }
+        #controls { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; pointer-events: auto; }
+        .ctrl-btn {
+            background: rgba(0,0,0,0.8); border: 2px solid #555; color: white;
+            padding: 15px 30px; cursor: pointer; border-radius: 5px; font-weight: bold;
+        }
+        .ctrl-btn.active { border-color: var(--danger); box-shadow: 0 0 10px var(--danger); }
+
+        /* --- MONITOR DE CÂMERAS --- */
+        #monitor-overlay {
+            position: fixed; bottom: -100%; left: 50%; transform: translateX(-50%);
+            width: 80%; height: 70%; background: #111; border: 10px solid #333;
+            transition: 0.5s ease-in-out; pointer-events: auto; z-index: 20;
+            display: grid; grid-template-columns: 1fr 200px;
+        }
+        #monitor-overlay.open { bottom: 20px; }
+        #cam-screen { background: black; position: relative; overflow: hidden; }
+        #cam-btns { background: #222; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .cam-sel { background: #333; color: white; border: 1px solid #555; padding: 10px; cursor: pointer; font-size: 0.8rem; }
+
+        /* --- EFEITOS --- */
+        #glitch-overlay { position: fixed; inset: 0; background: url('https://media.giphy.com/media/oEI9uWUqnW3Fe/giphy.gif'); opacity: 0.03; pointer-events: none; z-index: 100; }
+        @keyframes titleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
     </style>
 </head>
 <body>
 
-    <div id="static-fx"></div>
-    <div id="cam-info">CAM 01</div>
+    <div id="glitch-overlay"></div>
 
-    <div id="game-hud">
-        <div id="stats">
-            NOITE <span id="night-txt">1</span><br>
-            <span id="hour-txt">12</span> AM<br>
-            ENERGIA: <span id="pow-txt">100</span>%
+    <div id="main-menu">
+        <div id="title-box">
+            <h1>BEGINNING OF HELL</h1>
+            <div class="subtitle">A FNAF FAN EXPERIENCE</div>
+        </div>
+        <div class="btn-container">
+            <button class="menu-btn" onclick="initGame()">NEW GAME</button>
+            <button class="menu-btn" onclick="alert('Easter Egg: Clique no nariz do robô na Noite 2...')">EXTRAS</button>
+        </div>
+    </div>
+
+    <div id="game-ui">
+        <div id="top-info">
+            <div id="power-box">POWER: <span id="pow-val">100</span>%</div>
+            <div id="time-box">12 AM - NIGHT <span id="night-val">1</span></div>
         </div>
 
-        <div id="cam-map">
-            <button class="cam-btn" onclick="switchCam(0)">CAM 01 - CORREDOR</button>
-            <button class="cam-btn" onclick="switchCam(1)">CAM 02 - SALA PRINCIPAL</button>
-            <button class="cam-btn" onclick="switchCam(2)">CAM 03 - DEPÓSITO</button>
-        </div>
-        
-        <div id="dialog-panel">
-            <div style="color:red; margin-bottom:5px; font-size:10px;">INTERROGAÇÃO ATIVA</div>
-            <button class="dialog-btn" onclick="askQuestion(0)">"Quem enviou você?"</button>
-            <button class="dialog-btn" onclick="askQuestion(1)">"Por que não descansa?"</button>
+        <div id="monitor-overlay">
+            <div id="cam-screen">
+                <div id="cam-tag" style="position:absolute; top:10px; left:10px; color:lime;">CAM 01</div>
+            </div>
+            <div id="cam-btns">
+                <button class="cam-sel" onclick="changeCam(0)">CAM 01 - MAIN HALL</button>
+                <button class="cam-sel" onclick="changeCam(1)">CAM 02 - DINING AREA</button>
+                <button class="cam-sel" onclick="changeCam(2)">CAM 03 - BACKSTAGE</button>
+                <button class="cam-sel" style="margin-top:auto; background:red;" onclick="toggleMonitor()">CLOSE MONITOR</button>
+            </div>
         </div>
 
-        <div id="btns">
-            <button class="game-btn" onclick="toggleDoor()">PORTA</button>
-            <button class="game-btn" onmousedown="toggleLight(true)" onmouseup="toggleLight(false)">LUZ</button>
-            <button class="game-btn" onclick="toggleCamera()">MODO CAM</button>
+        <div id="controls">
+            <button id="door-btn" class="ctrl-btn" onclick="toggleDoor()">DOOR [OFF]</button>
+            <button id="light-btn" class="ctrl-btn" onclick="toggleLamp()">LIGHT [ON]</button>
+            <button class="ctrl-btn" onclick="toggleMonitor()">MONITOR</button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 
     <script>
-        /** ENGINE E CENA **/
+        /** ENGINE E GRÁFICOS **/
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020202);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        /** ESTADOS **/
+        /** LOGICA DE ESTADO **/
         let power = 100, night = 1, hour = 0;
-        let doorClosed = false, cameraOpen = false, lightOn = false, isInterrogating = false;
-        let currentCam = 0;
+        let isDoorClosed = false, isLampOn = true, isMonitorOpen = false;
+        let animatronicPos = -20; 
 
-        /** LUZES (O SEGREDO PARA VER O CENÁRIO) **/
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.2); // Luz fraca constante
-        scene.add(ambientLight);
+        /** ILUMINAÇÃO DA SALA (LÂMPADA PENDULAR) **/
+        const roomLight = new THREE.PointLight(0xffffff, 1.5, 12);
+        roomLight.position.set(0, 4.5, 2);
+        scene.add(roomLight);
 
-        const officeLight = new THREE.PointLight(0xffffff, 0.8, 10);
-        officeLight.position.set(0, 2, 4);
-        scene.add(officeLight);
+        // Luz de preenchimento para melhorar os gráficos (Ambient Occlusion fake)
+        const fillLight = new THREE.AmbientLight(0x202020, 0.2);
+        scene.add(fillLight);
 
-        const flashlight = new THREE.SpotLight(0xffffff, 0, 15, Math.PI/6, 0.5);
-        flashlight.position.set(0, 1.5, 4);
-        scene.add(flashlight);
-        scene.add(flashlight.target);
+        /** CENÁRIO REALISTA **/
+        // Chão com textura simulada
+        const floorGeo = new THREE.PlaneGeometry(20, 40);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0.5 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
 
-        /** CONSTRUÇÃO DO CENÁRIO (VISÍVEL) **/
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        // Paredes com relevo
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+        const corridor = new THREE.Mesh(new THREE.BoxGeometry(7, 6, 50), wallMat);
+        corridor.position.set(0, 3, -15);
+        corridor.material = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, side: THREE.BackSide });
+        scene.add(corridor);
 
-        // Corredor (Onde tudo acontece)
-        const hallGeo = new THREE.BoxGeometry(8, 5, 30);
-        const hall = new THREE.Mesh(hallGeo, new THREE.MeshStandardMaterial({ color: 0x1a1a1a, side: THREE.BackSide }));
-        hall.position.set(0, 2.5, -10);
-        scene.add(hall);
-
-        // Mesa de Segurança
-        const desk = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 1.5), new THREE.MeshStandardMaterial({color: 0x331100}));
-        desk.position.set(0, 0.8, 4.5);
+        // A Mesa do Escritório
+        const desk = new THREE.Group();
+        const top = new THREE.Mesh(new THREE.BoxGeometry(5, 0.2, 2), new THREE.MeshStandardMaterial({color:0x111}));
+        top.position.set(0, 1, 3.5);
+        desk.add(top);
         scene.add(desk);
 
-        // Porta
-        const door = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4, 0.2), new THREE.MeshStandardMaterial({color: 0x444}));
-        door.position.set(-2.8, 2, 3);
-        scene.add(door);
-
-        /** ANIMATRÔNICO REALISTA **/
-        const animatronic = new THREE.Group();
-        const robotMat = new THREE.MeshStandardMaterial({color: 0x550000});
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.6), robotMat);
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.4), robotMat);
-        head.position.y = 1.2;
-        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.05), new THREE.MeshBasicMaterial({color: 0xff0000}));
-        eyeL.position.set(-0.15, 0.1, 0.2);
-        const eyeR = eyeL.clone(); eyeR.position.x = 0.15;
-        head.add(eyeL, eyeR);
-        animatronic.add(body, head);
-        animatronic.position.set(0, 0.9, -15);
-        scene.add(animatronic);
-
-        /** POSIÇÕES DAS CÂMERAS **/
-        const camViews = [
-            { pos: [0, 3, -2], look: [0, 1, -20], name: "CORREDOR" },
-            { pos: [3, 4, -10], look: [-5, 0, -15], name: "SALA PRINCIPAL" },
-            { pos: [-3, 3, -18], look: [0, 0, -10], name: "DEPÓSITO" }
-        ];
+        /** O ANIMATRÔNICO (DETALHADO) **/
+        const redRobot = new THREE.Group();
+        const matRobot = new THREE.MeshStandardMaterial({color: 0x600000, metalness: 0.7, roughness: 0.4});
+        
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.4, 1, 4, 8), matRobot);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), matRobot);
+        head.position.y = 1;
+        
+        // Olhos Brilhantes
+        const eyeGeo = new THREE.SphereGeometry(0.06);
+        const eyeMat = new THREE.MeshBasicMaterial({color: 0xff0000});
+        const e1 = new THREE.Mesh(eyeGeo, eyeMat); e1.position.set(0.15, 1.1, 0.25);
+        const e2 = new THREE.Mesh(eyeGeo, eyeMat); e2.position.set(-0.15, 1.1, 0.25);
+        
+        redRobot.add(body, head, e1, e2);
+        redRobot.position.set(0, 1.2, animatronicPos);
+        scene.add(redRobot);
 
         /** FUNÇÕES DO JOGO **/
-        function toggleCamera() {
+        function initGame() {
+            document.getElementById('main-menu').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'block';
+                gameState = "PLAYING";
+            }, 1500);
+        }
+
+        function toggleDoor() {
             if(power <= 0) return;
-            cameraOpen = !cameraOpen;
-            document.getElementById("static-fx").style.display = cameraOpen ? "block" : "none";
-            document.getElementById("cam-map").style.display = cameraOpen ? "flex" : "none";
-            document.getElementById("cam-info").style.display = cameraOpen ? "block" : "none";
-            
-            if(!cameraOpen) {
-                camera.position.set(0, 1.6, 5.5);
-                camera.lookAt(0, 1.6, -10);
-            } else {
-                switchCam(currentCam);
-            }
+            isDoorClosed = !isDoorClosed;
+            document.getElementById('door-btn').innerText = isDoorClosed ? "DOOR [CLOSED]" : "DOOR [OFF]";
+            document.getElementById('door-btn').classList.toggle('active');
         }
 
-        function switchCam(idx) {
-            currentCam = idx;
-            const v = camViews[idx];
-            camera.position.set(...v.pos);
-            camera.lookAt(...v.look);
-            document.getElementById("cam-info").innerText = v.name;
+        function toggleLamp() {
+            if(power <= 0) return;
+            isLampOn = !isLampOn;
+            roomLight.intensity = isLampOn ? 1.5 : 0;
+            document.getElementById('light-btn').innerText = isLampOn ? "LIGHT [ON]" : "LIGHT [OFF]";
+            document.getElementById('light-btn').classList.toggle('active');
         }
 
-        function toggleDoor() { if(power > 0) { doorClosed = !doorClosed; door.position.y = doorClosed ? 0.2 : 2; } }
-        function toggleLight(on) { if(power > 0) { lightOn = on; flashlight.intensity = on ? 2.5 : 0; officeLight.intensity = on ? 1.2 : 0.6; } }
-
-        function askQuestion(i) {
-            isInterrogating = false;
-            document.getElementById("dialog-panel").style.display = "none";
-            animatronic.position.z = -18; // Afasta ele após a resposta
-            if(cameraOpen) toggleCamera();
+        function toggleMonitor() {
+            if(power <= 0) return;
+            isMonitorOpen = !isMonitorOpen;
+            document.getElementById('monitor-overlay').classList.toggle('open');
         }
 
-        function update() {
-            // Movimento do robô
-            if(Math.random() < 0.002 && !isInterrogating) animatronic.position.z += 0.5;
+        function changeCam(id) {
+            const colors = ["#ff0000", "#00ff00", "#0000ff"];
+            document.getElementById('cam-tag').innerText = "CAM 0" + (id+1);
+            document.getElementById('cam-screen').style.boxShadow = `inset 0 0 50px ${colors[id]}`;
+        }
 
-            // Ativar Interrogação (Câmera 01 e Perto)
-            if(cameraOpen && currentCam === 0 && animatronic.position.z > -8 && !isInterrogating) {
-                isInterrogating = true;
-                document.getElementById("dialog-panel").style.display = "flex";
+        /** LOOP DE RENDERIZAÇÃO E IA **/
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Balanço da lâmpada (Realismo)
+            if(isLampOn) {
+                roomLight.position.x = Math.sin(Date.now() * 0.002) * 0.2;
+                roomLight.intensity = 1.4 + Math.random() * 0.2; // Efeito de mau contato
             }
 
-            // Consumo de energia
+            // Movimento da câmera (respiração do jogador)
+            camera.position.set(0, 1.8, 5.5);
+            camera.rotation.y = Math.sin(Date.now() * 0.001) * 0.05;
+            camera.position.y += Math.sin(Date.now() * 0.002) * 0.02;
+
+            // IA do Robô
+            if(Math.random() < 0.001) {
+                animatronicPos += 1;
+                redRobot.position.z = animatronicPos;
+            }
+
+            // Consumo de Energia
             if(power > 0) {
-                power -= (doorClosed ? 0.05 : 0.01) + (cameraOpen ? 0.02 : 0);
-                document.getElementById("pow-txt").innerText = Math.floor(power);
+                let consumption = 0.005;
+                if(isDoorClosed) consumption += 0.02;
+                if(isLampOn) consumption += 0.01;
+                if(isMonitorOpen) consumption += 0.015;
+                power -= consumption;
+                document.getElementById('pow-val').innerText = Math.floor(power);
             } else {
-                officeLight.intensity = 0;
-                if(cameraOpen) toggleCamera();
+                isLampOn = false; isDoorClosed = false; isMonitorOpen = false;
+                roomLight.intensity = 0;
+                document.getElementById('monitor-overlay').classList.remove('open');
             }
 
             // Jumpscare
-            if(animatronic.position.z > 2.5 && !doorClosed) {
-                alert("O ANIMATRÔNICO TE PEGOU!");
-                location.reload();
+            if(animatronicPos > 3 && !isDoorClosed) {
+                location.reload(); // Reinicia ao morrer
             }
-        }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            update();
             renderer.render(scene, camera);
         }
 
-        // Setup Inicial
-        camera.position.set(0, 1.6, 5.5);
         animate();
 
-        window.addEventListener("resize", () => {
-            camera.aspect = window.innerWidth/window.innerHeight;
+        // Ajuste de tela
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
+
     </script>
 </body>
 </html>
